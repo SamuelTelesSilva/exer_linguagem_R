@@ -1,0 +1,107 @@
+---
+title: "atividade_1"
+author: "samuel_teles"
+date: '2022-03-12'
+output: html_document
+---
+
+##Pegando o dataset Fifa19
+##Dataset utilizado: https://www.kaggle.com/karangadiya/fifa19
+```{r}
+library(readr)
+fifa19 <- read_csv("fifa19.csv")
+```
+
+##Usando o pacote Janitor, install.packages("janitor")
+```{r}
+library(janitor)
+dfFifa <- fifa19 %>% clean_names(case = "lower_camel")
+```
+
+##Utilizando stringr para remover o sinal € e o M
+```{r}
+library(stringr)
+
+valuePlayer <- dfFifa$value
+newValuePlayer <- str_replace_all(valuePlayer, '\\€|M|K','')
+
+```
+
+##Selecionando algumas variáveis 
+```{r}
+library(dplyr)
+df <- dfFifa %>%
+  select(name, age, nationality, 
+         overall, potential, club, position, value
+         )
+```
+
+##Utilizando o tibble
+```{r}
+library(tibble)
+convert_df <- as_tibble(df)
+```
+
+##Substituindo a coluna value, para os valores sem o sinal de € e o M
+```{r}
+convert_df$value <- as.numeric(newValuePlayer)
+```
+
+##Removendo os valores nulos NA
+```{r}
+library(tidyr)
+
+print( sum(is.na(convert_df)) ) #Quantos valores nulos tem
+
+convert_df <-  drop_na(convert_df) #removendo os valores nulos
+
+print( sum(is.na(convert_df)) ) 
+
+```
+
+
+##Qual o país que tem mais jogadores
+```{r}
+  p_count <- convert_df %>% 
+    count( nationality, sort = TRUE)
+```
+
+##Quantos jogadores com a mesma idade tem no fifa19
+```{r}
+p_count <- convert_df %>%
+  count(age,sort = TRUE)
+```
+
+##Procurando jovens promessas do fifa19
+```{r}
+j_promessas <- convert_df %>%
+  mutate(
+    promessa = case_when(
+      # condicoes ~ valor caso condicao  verdadeira
+      age <= 21 & overall > 80 ~ "É uma Promessa",
+      TRUE ~ "Não é uma promessa"
+    )
+  )
+
+#
+p_count <- j_promessas %>%
+  count(age, promessa, nationality, sort = TRUE)
+
+```
+
+```{r}
+groupDf <- j_promessas %>%
+  group_by(promessa) %>%
+  summarize(
+    media_idade = mean(age)
+  )
+
+```
+
+
+
+
+
+
+
+
