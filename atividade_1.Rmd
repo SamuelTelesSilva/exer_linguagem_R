@@ -83,12 +83,13 @@ j_promessas <- convert_df %>%
     )
   )
 
-#
+
 p_count <- j_promessas %>%
   count(age, promessa, nationality, sort = TRUE)
 
 ```
 
+#Pegando a média de idade dos jogadores promessas 
 ```{r}
 groupDf <- j_promessas %>%
   group_by(promessa) %>%
@@ -98,10 +99,27 @@ groupDf <- j_promessas %>%
 
 ```
 
+##Pegando alguns dados dos jogadores de cada país
+```{r}
+group_nationality <- convert_df %>%
+  group_by(nationality) %>%
+  summarize(
+    media_idade = mean(age),
+    media_overall = mean(overall),
+    media_value = mean(value),
+    max_value_df = max(value),
+    qtd_jogadores = length(name)
+    )
+```
 
+##Filtro
+```{r}
+dfFiltro <- convert_df %>% filter(nationality == "Brazil")
 
+```
 
+##Rearranjo
+```{r}
+rearranjo_df <- convert_df %>% spread(key = "overall", value="nationality")
 
-
-
-
+```
