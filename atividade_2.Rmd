@@ -1,0 +1,194 @@
+---
+title: "atividade_2"
+author: "samuel_teles"
+date: '2022-03-20'
+output: html_document
+---
+
+#dataset usado: https://www.kaggle.com/datasets/datota/fruit-and-vegatable-prices-in-uk-2017-2022
+
+**#Part 1**
+
+#importando as bibliotecas
+
+```{r}
+library(readr)
+library(janitor)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+#library(lubridate)
+```
+
+#Lendo os dados com o readr
+
+```{r}
+fruitveg <- read_csv("fruitvegprices-2017_2022.csv",
+                     na = c("", "NA", "?"),
+                     col_types = "cccDdc")
+
+#Warning: One or more parsing issues, see `problems()` for details. A coluna date vem com os dados nulos
+#fruitveg <- read_csv("fruitvegprices-2017_2022.csv", na = c("", "NA", "?"), col_types = cols(date =  col_date(format = "%m/%d/%Y")))
+
+```
+
+**#Part 2**
+
+#Usando o janitor para padronizar as colunas e fazendo a ordenação
+
+```{r}
+df_fruitveg <-  fruitveg %>%
+                clean_names() %>%
+                arrange(desc(price))
+```
+
+#Verificando se tem valores nulos
+
+```{r}
+print(sum(is.na(df_fruitveg)))
+
+#convert_df <-  drop_na(convert_df) #removendo os valores nulos
+#print( sum(is.na(convert_df)) ) 
+```
+
+#Formatando a coluna date
+
+```{r}
+#df_fruitveg$date <- format(as.Date(df_fruitveg$date), "%d/%m/%Y")
+```
+
+**#Part 3**
+
+#Utilizando o count para saber quantos itens tem
+
+```{r}
+df <- df_fruitveg %>% count(category)
+```
+
+#Pegando algumas informações com mean, max e min
+
+```{r}
+df1 <-  df_fruitveg %>%
+        group_by(category) %>%
+        drop_na() %>%
+        summarise(
+          mean_price = mean(price),
+          max_price = max(price),
+          min_price = min(price)
+        )
+```
+
+#Grafico com a media de cada categoria
+
+```{r}
+df1 %>% ggplot(aes(category, mean_price, colour = category)) + geom_point()
+```
+
+#Grafico de barras com a qtd de itens
+
+```{r}
+df_fruitveg %>%
+        group_by(category) %>%
+        ggplot(aes(category, fill = category)) +
+        geom_bar()
+```
+
+#Pegando os dados referente ao ano de 2022
+
+```{r}
+df_2022 <- filter(df_fruitveg,
+                  between(date, as.Date("2022-01-01"), as.Date("2022-03-01"))) %>%
+                  group_by(category, item) %>%
+                  summarise(
+                    mean_price = mean(price),
+                    max_price = max(price),
+                    min_price = min(price)
+                  )
+
+```
+
+#Utilizando filtro com datas
+
+```{r}
+df1_2022 <- filter(df_fruitveg,
+                  between(date, as.Date("2022-01-01"), as.Date("2022-03-01")))
+```
+
+#Um grafico com a categoria e o preço do ano de 2022
+
+```{r}
+df1_2022 %>%
+  ggplot(aes(category, price, colour = category)) +
+  geom_point()
+```
+
+#Pegando os dados referente ao ano de 2021
+
+```{r}
+df_2021 <- filter(df_fruitveg,
+                  between(date, as.Date("2021-01-01"), as.Date("2021-12-31"))) %>% 
+                  group_by(category, item) %>%
+                  summarise(
+                    mean_price = mean(price),
+                    max_price = max(price),
+                    min_price = min(price)
+                  )
+
+```
+
+#Grafico com a media e a categoria do ano de 2021
+
+```{r}
+df_2021 %>%
+  ggplot(aes(category, mean_price, colour = category)) +
+  geom_point() +
+  labs(
+    title = "Média dos preços por categoria",
+    subtitle = "média de preço dos itens da categoria"
+       )
+```
+
+#Grafico com o preço de todos os anos
+
+```{r}
+df_fruitveg %>% ggplot() +
+  geom_point(aes(date, price, color = price))
+```
+
+#Grafico com a media de preço de todos os anos
+
+```{r}
+df_fruitveg %>%
+  group_by(date) %>%
+  summarise(mean_price = mean(price)) %>% 
+  ggplot() +
+  geom_line(aes(date, mean_price)) +
+  labs(
+    title = "Média de preços",
+    subtitle = "média dos preços de todos os anos"
+       )
+```
+
+#Grafico com a quantidade de cada item
+
+```{r}
+  df_fruitveg %>%
+  count(item) %>% 
+  top_n(10, n) %>%
+  mutate(item = forcats::fct_reorder(item, n)) %>%
+  ggplot() +
+  geom_col( aes(n, item, fill = item), show.legend = FALSE) +
+  labs(
+    title = "Quantidades de itens",
+    subtitle = "quantidade de cada item"
+       )
+  
+```
+
+```{r}
+df_fruitveg %>%
+  filter(category == "fruit") %>%
+  ggplot(aes(price)) +
+  geom_density(fill = "steelblue")
+```
+
