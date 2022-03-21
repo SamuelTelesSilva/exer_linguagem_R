@@ -1,0 +1,207 @@
+---
+title: "Atividade_2_fifa"
+author: "samuel_teles"
+date: '2022-03-21'
+output: html_document
+---
+
+#foi utilizado o dataset: https://www.kaggle.com/datasets/stefanoleone992/fifa-22-complete-player-dataset, nome do arquivo: players_22
+
+#install.packages("devtools")
+#devtools::install_github("thomasp85/patchwork")
+#install.packages("ggridges")
+
+**#Part 1**
+#bibliotecas
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(janitor)
+library(scales) 
+library(patchwork)
+library(ggridges)
+```
+
+#Pegando o dataset do fifa 22
+```{r}
+fifa <- read_csv("players_22.csv")
+```
+
+#Padronizando as variaveis com janitor
+```{r}
+fifa <- fifa %>% clean_names(case = "lower_camel")
+```
+
+#Selecionando as variaveis e ordenando os valores
+```{r}
+df_fifa <- fifa %>%
+  arrange(desc(age)) %>% 
+  select(shortName, overall, potential, age, valueEur, wageEur, clubName, nationalityName, clubPosition)
+```
+
+
+**#Part 2**
+
+#Grafico com a idade e o overall dos jogadores
+```{r}
+df_fifa %>%
+  ggplot(aes(age, overall, colour = overall, size = age)) +
+  geom_point() +
+  labs(
+    title = "Idade e Overall"
+  )
+  
+```
+
+#
+```{r}
+df_fifa %>%
+  ggplot(aes(age, overall)) +
+  geom_point() +
+  labs(
+    title = "Idade e Overall"
+  ) + geom_smooth(method = "lm")
+  
+
+```
+
+```{r}
+df_fifa %>%
+  ggplot(aes(overall)) +
+  geom_density(fill = "steelblue")
+```
+
+
+
+**#Part 3**
+
+#Procurando os jovens promessas
+```{r}
+
+df1 <- df_fifa %>%
+  mutate(
+    status = case_when(
+      age <= 23 & overall >= 75 ~ "jovem-promessa",
+      age <= 23 & overall <= 65 ~ "jovem-não-promessa",
+      TRUE ~ "não-é-jovem"
+    )
+  )
+```
+
+```{r}
+p1 <-  df1 %>%
+  ggplot(aes(status, fill = status)) +
+  geom_bar() +
+  labs(
+    title = "Promessas e não promessas do futebol"
+  )
+```
+
+
+#Fazendo um group_by
+```{r}
+df2 <- df1 %>% 
+  group_by(status) %>% 
+  summarise(
+    n = n()
+  )
+```
+
+#Utilizando o filtro para procurar os jovens promessas
+```{r}
+fifa_promessas <- df1 %>% 
+  filter(status == "jovem-promessa")
+```
+
+```{r}
+fifa_promessas %>% 
+  ggplot(aes(age, overall)) +
+  geom_line() +
+  labs(
+    title = "Promessas do futebol"
+  )
+```
+
+```{r}
+fifa_promessas %>% 
+  ggplot(aes(age, overall, colour = overall, size = age)) +
+  geom_point() +
+  labs(
+    title = "Promessas do futebol"
+  )
+  
+    
+```
+
+**#Part 4**
+
+#Salários de todos os jogadores
+```{r}
+df_fifa %>% 
+  ggplot(aes(age, wageEur)) +
+  geom_line() +
+  scale_y_continuous(
+    labels = label_dollar(prefix = "", suffix = "€")
+  ) +
+  labs(
+    title = "Salários dos jogadores",
+    x = "idade",
+    y = "Salário em Euros"
+  )
+```
+
+
+#Salários dos jovens promessas
+```{r}
+p2 <- fifa_promessas %>% 
+  ggplot(aes(age, wageEur)) +
+  geom_line() +
+  scale_y_continuous(
+    labels = label_dollar(prefix = "", suffix = "€")
+  ) +
+  labs(
+    title = "Salários das promessas",
+    x = "idade",
+    y = "Salário em Euros"
+  )
+```
+
+#Qual o país com mais jogadores promessas
+```{r}
+p3 <- fifa_promessas %>%
+  count(nationalityName) %>% 
+  top_n(10, n) %>%
+  mutate(
+    nationalityName = forcats::fct_reorder(nationalityName, n)) %>%
+  ggplot() +
+  geom_col( 
+    aes(n, nationalityName, fill = nationalityName),
+    show.legend = FALSE ) + 
+  labs(
+    title = "Países dos jovens promessas",
+    x = "Quantidade de jogadores",
+    y = "Países"
+  )
+```
+
+#Salvando o grafico anterior
+```{r}
+ggsave("p2.pdf", width = 6,   height = 4)
+```
+
+**#Part 5**
+
+#Utilizando o patchwork
+```{r}
+p1 + p2
+```
+```{r}
+(p1 | p2) / p3 +
+  plot_annotation(title = "Gráficos dos jogadores",
+                  tag_levels = "I", tag_prefix = "Fig. ") +
+  plot_layout(ncol = 2, widths = c(1, 2))
+```
+
+
