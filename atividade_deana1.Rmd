@@ -1,0 +1,348 @@
+---
+title: "Atividade"
+author: "samuel_teles"
+date: '2022-03-27'
+output: html_document
+---
+
+# **#Parte 1**
+
+# 
+
+#Carregando os pacotes
+
+```{r}
+
+if(!require(readr))
+  install.packages("readr")
+library(readr)
+
+if(!require(dplyr))
+  install.packages("dplyr")
+library(dplyr)
+
+if(!require(ggplot2))
+  install.packages("ggplot2")
+library(ggplot2)
+
+if(!require(qqplotr))
+  install.packages("qqplotr")
+library(qqplotr)
+
+if(!require(rstatix))
+  install.packages("rstatix")
+library(rstatix)
+
+if(!require(janitor))
+  install.packages("janitor")
+library(janitor)
+
+if(!require(lubridate))
+  install.packages("lubridate")
+library(lubridate)
+
+if(!require("dgof"))
+  install.packages("dgof")
+library(dgof)
+
+
+```
+
+#Carregando o banco de dados
+
+```{r carregando o banco de dados}
+dados <- read.csv('ca_2021_02_1.csv', sep = ";", dec = ",")
+
+```
+
+#visualizando os dados
+
+```{r}
+glimpse(dados)
+```
+
+#Padronizando as variáveis com Janitor
+
+```{r}
+dados <- dados %>% clean_names(case="lower_camel")
+```
+
+#Selecionando as variáveis
+
+```{r}
+dados <- dados %>%
+          select(iRegiaoSigla, estadoSigla, municipio, revenda, produto, dataDaColeta, valorDeVenda, unidadeDeMedida, bandeira)
+
+glimpse(dados)
+```
+
+#Formatando a variável dataDaColeta para o formato Date
+
+```{r}
+dados <- dados %>%
+      mutate(dt_coleta = as.Date(dados$dataDaColeta, "%d/%m/%Y"))
+
+
+glimpse(dados)
+is.Date(dados$dt_coleta) #Verificando
+```
+
+#resumindo os dados
+
+```{r}
+table(dados$municipio)
+
+table(dados$municipio, dados$produto)
+table(dados$estadoSigla, dados$produto)
+```
+
+#Análise preliminar
+
+```{r}
+prop.table(table(dados$estadoSigla, dados$produto), margin = 2)*100
+
+
+dados %>% 
+  ggplot(aes(estadoSigla, fill = produto)) +
+  geom_bar()
+
+
+dados %>%
+  ggplot(aes(estadoSigla)) +
+  geom_bar() +
+  facet_wrap(~produto)
+
+```
+
+#Onde tem o combustível mais caro? e qual?
+```{r}
+
+#No Rj tem a gasolina aditivada mais cara do que em outros estados.
+dados1 <- dados %>% 
+  group_by(estadoSigla, produto) %>%
+                  summarise(
+                    mean_price = mean(valorDeVenda),
+                    max_price = max(valorDeVenda),
+                    min_price = min(valorDeVenda),
+                    .groups = 'drop'
+                  ) %>% 
+                  #arrange(desc(mean_price))
+                  arrange(mean_price)
+
+
+#O preço médio do Etanol no estado de SP, tem um preço melhor para o consumidor.
+dados %>%
+  filter(produto == "ETANOL") %>% 
+  group_by(estadoSigla) %>% 
+  summarise(
+    mean_price = mean(valorDeVenda),
+    max_price = max(valorDeVenda),
+    min_price = min(valorDeVenda),
+    .groups = 'drop'
+  )%>% 
+  arrange(mean_price)
+
+
+#No MT tem a menor média no valor do combustível GNV.
+```
+
+#Dados Contínuos
+
+```{r}
+valor <- c(range(dados$valorDeVenda))
+
+classes <- nclass.Sturges(dados$valorDeVenda)
+
+table( cut(dados$valorDeVenda, seq(2, 9, l = 10)))
+
+```
+
+```{r vizualizando os dados quantitativos}
+#Normalidade dos dados
+dados %>% 
+  ggplot(aes(valorDeVenda))+
+  geom_histogram(bins = 10) +
+  facet_wrap(~estadoSigla)
+```
+
+#utilizando grafico com a frequencia relativa
+
+```{r}
+dados %>% 
+  ggplot(aes(valorDeVenda))+
+  geom_histogram(aes(y = stat(count)/sum(count)), bins = 10) +
+  facet_wrap(~estadoSigla) +
+  scale_y_continuous(labels = scales::percent)
+```
+
+#Utilizando o grafico QQ, para verificar a normalidade
+
+```{r}
+#Dados não normalizados
+dados %>% 
+  ggplot(aes(sample = valorDeVenda)) +
+  facet_wrap(~estadoSigla) +
+  stat_qq()
+
+
+dados %>%
+  ggplot(aes(sample = valorDeVenda)) +
+  facet_wrap(~estadoSigla) +
+  stat_qq_band(fill = "gray") +
+  stat_qq_line(col = "red") +
+  stat_qq_point()
+
+```
+
+#Teste de normalidade com o ks test
+
+```{r}
+#shapiro.test(dados$valorDeVenda)
+t1 <- ks.test(dados$valorDeVenda,"pnorm", mean(dados$valorDeVenda), sd(dados$valorDeVenda))
+
+
+#Não deu certo
+#dados %>%
+  #group_by(estadoSigla) %>% 
+  #summarise( Estatistica =  t1$statistic,
+            # p_valor = t1$p.value)
+
+```
+
+# **#Parte 2**
+
+#Escolhendo o estado do Amapá para fazer as análises
+
+```{r}
+dfAP <- filter(dados, estadoSigla == "AP")
+glimpse(dfAP)
+```
+
+#Resumindo os dados
+
+```{r}
+table(dfAP$produto)
+table(dfAP$bandeira)
+
+table(dfAP$bandeira, dfAP$produto)
+```
+
+#Dados Contínuos
+
+```{r}
+
+
+valor2 <- c( range(dfAP$valorDeVenda))
+
+
+classes2 <- nclass.Sturges(dfAP$valorDeVenda)
+
+
+table( cut(dfAP$valorDeVenda, seq(4, 7, l = 9)))
+
+```
+
+#Analise preliminar
+
+```{r}
+prop.table(table(dfAP$produto))*100
+prop.table(table(dfAP$estadoSigla, dfAP$produto))*100
+
+
+dfAP %>% 
+  ggplot(aes(bandeira)) +
+  geom_bar()+
+  facet_wrap(~produto)
+
+dfAP %>% 
+  ggplot(aes(produto, fill = bandeira)) +
+  geom_bar()
+
+
+
+
+```
+
+```{r vizualizando os dados quantitativos}
+
+dfAP %>% 
+  ggplot(aes(valorDeVenda))+
+  geom_histogram(bins = 10) +
+  facet_wrap(~produto)
+
+
+dfAP %>% 
+  ggplot(aes(valorDeVenda)) +
+  geom_histogram(aes(y = stat(count)/sum(count)), bins = 10)+
+  geom_density() +
+  facet_wrap(~produto) 
+
+```
+
+#Utilizando o grafico QQ, para verificar a normalidade
+
+```{r}
+
+dfAP %>% 
+  ggplot(aes(sample = valorDeVenda)) +
+  facet_wrap(~produto) +
+  stat_qq()
+
+```
+
+```{r graficos qq}
+
+dfAP %>%
+  ggplot(aes(sample = valorDeVenda)) +
+  facet_wrap(~produto) +
+  stat_qq_band(fill = "gray") +
+  stat_qq_line(col = "red") +
+  stat_qq_point()
+
+```
+
+#Teste de normalidade
+
+```{r}
+
+shapiro.test(dfAP$valorDeVenda) 
+
+dfAP %>%
+  group_by(produto) %>% 
+  summarise( Estatistica =  shapiro.test(valorDeVenda)$statistic,
+             p_valor = shapiro.test(valorDeVenda)$p.value)
+```
+
+#Quando os dados NÃO é normal
+
+```{r}
+dfAP %>% 
+  group_by(produto) %>%
+  summarise(Mediana = median(valorDeVenda),
+            Quartil_1 = quantile(valorDeVenda, prob=0.25),
+            Quartil_3 = quantile(valorDeVenda, prob=0.75),
+            n = n())
+```
+
+#Outliers
+
+```{r outliers}
+
+#foi encontrado o produto diesel como valor outlier, foi verificado e o valor foi mantido.
+dfAP %>%
+  group_by(produto) %>% 
+  identify_outliers(valorDeVenda)
+
+
+```
+
+#Dados que não tem uma distribuição normal
+#gráfico
+```{r}
+
+dfAP %>%
+  ggplot(aes(produto, valorDeVenda))+
+  geom_boxplot()
+
+```
+
