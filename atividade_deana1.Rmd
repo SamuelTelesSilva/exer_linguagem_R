@@ -346,3 +346,20 @@ dfAP %>%
 
 ```
 
+#Qual o melhor posto para abastecer com gasolina no Amapá
+```{r}
+
+#O melhor lugar é no posto ANDRADE & MACHADO LTDA - EPP, com uma média de preço de 5,22
+dfAP %>%
+  filter(produto == "GASOLINA") %>% 
+  group_by(revenda) %>% 
+  summarise(
+    mean_price = mean(valorDeVenda),
+    max_price = max(valorDeVenda),
+    min_price = min(valorDeVenda),
+    .groups = 'drop'
+  )%>% 
+  arrange(mean_price)
+  
+```
+
